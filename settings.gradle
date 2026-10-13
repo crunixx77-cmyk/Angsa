@@ -1,1 +1,1 @@
-include ':app', ':nujuma-shared', ':terminal-emulator', ':terminal-view'
+include ':app', ':nujuma-shared', ':terminal-emulator', ':terminal-view', ':nujuma-am-library'
