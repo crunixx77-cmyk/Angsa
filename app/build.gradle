@@ -36,6 +36,7 @@ android {
 
         implementation project(":terminal-view")
         implementation project(":nujuma-shared")
+        implementation files("libs/nujuma-am-library-release.aar")
     }
 
     defaultConfig {
@@ -142,7 +143,6 @@ android {
             }
         }
     }
-
 }
 
 dependencies {
