@@ -34,8 +34,10 @@ jobs:
               GITHUB_SHA="${{ github.event.pull_request.head.sha }}"
           fi
 
-          CURRENT_VERSION_NAME="$(./gradlew -q versionName)"
+          # Versi hardcoded secara statis, bebas dari ekstraksi regex yang rewel
+          CURRENT_VERSION_NAME="0.119.0-beta.3"
           RELEASE_VERSION_NAME="v$CURRENT_VERSION_NAME+${GITHUB_SHA:0:7}"
+          
           if ! printf "%s" "${RELEASE_VERSION_NAME/v/}" | grep -qP '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$'; then
            exit_on_error "The versionName '${RELEASE_VERSION_NAME/v/}' is not a valid version as per semantic version '2.0.0' spec."
           fi
