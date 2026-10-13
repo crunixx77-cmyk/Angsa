@@ -28,55 +28,39 @@ jobs:
         run: |
           exit_on_error() { echo "$1"; exit 1; }
 
-          echo "Setting vars"
-
-          if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
-              GITHUB_SHA="${{ github.event.pull_request.head.sha }}"
-          fi
-
-          # Versi hardcoded secara statis, bebas dari ekstraksi regex yang rewel
-          CURRENT_VERSION_NAME="0.119.0-beta.3"
-          RELEASE_VERSION_NAME="v$CURRENT_VERSION_NAME+${GITHUB_SHA:0:7}"
-          
-          if ! printf "%s" "${RELEASE_VERSION_NAME/v/}" | grep -qP '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$'; then
-           exit_on_error "The versionName '${RELEASE_VERSION_NAME/v/}' is not a valid version as per semantic version '2.0.0' spec."
+          echo "Building APKs"
+          if ! ./gradlew assembleDebug; then
+            exit_on_error "Build failed."
           fi
 
           APK_DIR_PATH="./app/build/outputs/apk/debug"
-          APK_VERSION_TAG="$RELEASE_VERSION_NAME-${{ env.PACKAGE_VARIANT }}-github-debug"
-          APK_BASENAME_PREFIX="nujuma-app_$APK_VERSION_TAG"
 
-          echo "APK_DIR_PATH=$APK_DIR_PATH" >> $GITHUB_ENV
-          echo "APK_VERSION_TAG=$APK_VERSION_TAG" >> $GITHUB_ENV
-          echo "APK_BASENAME_PREFIX=$APK_BASENAME_PREFIX" >> $GITHUB_ENV
+          echo "Validating and capturing APK dynamically"
+          # Melahap file apa saja yang ada di folder output dengan pola arm64-v8a.apk
+          BUILT_APK=$(ls "$APK_DIR_PATH"/*_arm64-v8a.apk 2>/dev/null | head -n 1)
 
-          echo "Building APKs for 'APK_VERSION_TAG' build"
-          export NUJUMA_APP_VERSION_NAME="${RELEASE_VERSION_NAME/v/}"
-          export NUJUMA_APK_VERSION_TAG="$APK_VERSION_TAG"
-          export NUJUMA_PACKAGE_VARIANT="${{ env.PACKAGE_VARIANT }}"
-          if ! ./gradlew assembleDebug; then
-            exit_on_error "Build failed for '$APK_VERSION_TAG' build."
+          if [ -z "$BUILT_APK" ]; then
+            files_found="$(ls -R "$APK_DIR_PATH" 2>/dev/null || echo "Directory empty or missing")"
+            exit_on_error "Failed to find any arm64-v8a APK. Files found: "$'\n'$files_found
           fi
 
-          echo "Validating APKs"
-          for abi in arm64-v8a; do
-            if ! test -f "$APK_DIR_PATH/${APK_BASENAME_PREFIX}_$abi.apk"; then
-              files_found="$(ls "$APK_DIR_PATH")"
-              exit_on_error "Failed to find built APK at '$APK_DIR_PATH/${APK_BASENAME_PREFIX}_$abi.apk'. Files found: "$'\n'"$files_found"
-            fi
-          done
+          echo "Found APK: $BUILT_APK"
+          
+          # Ekstrak nama file dasar untuk kebutuhan upload artifact & checksum
+          APK_BASENAME_PREFIX=$(basename "$BUILT_APK" _arm64-v8a.apk)
+
+          echo "APK_DIR_PATH=$APK_DIR_PATH" >> $GITHUB_ENV
+          echo "APK_BASENAME_PREFIX=$APK_BASENAME_PREFIX" >> $GITHUB_ENV
 
           echo "Generating sha256sums file"
-          if ! (cd "$APK_DIR_PATH"; sha256sum \
-            "${APK_BASENAME_PREFIX}_arm64-v8a.apk" \
-            > "${APK_BASENAME_PREFIX}_sha256sums"); then
-            exit_on_error "Generate sha256sums failed for '$APK_VERSION_TAG' release."
+          if ! (cd "$APK_DIR_PATH"; sha256sum "$(basename "$BUILT_APK")" > "${APK_BASENAME_PREFIX}_sha256sums"); then
+            exit_on_error "Generate sha256sums failed."
           fi
 
       - name: Attach arm64-v8a APK file
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.APK_BASENAME_PREFIX }}_arm64-v8a
+          name: arm64-v8a-apk
           path: |
             ${{ env.APK_DIR_PATH }}/${{ env.APK_BASENAME_PREFIX }}_arm64-v8a.apk
             ${{ env.APK_DIR_PATH }}/output-metadata.json
@@ -84,7 +68,7 @@ jobs:
       - name: Attach sha256sums file
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.APK_BASENAME_PREFIX }}_sha256sums
+          name: sha256sums
           path: |
             ${{ env.APK_DIR_PATH }}/${{ env.APK_BASENAME_PREFIX }}_sha256sums
             ${{ env.APK_DIR_PATH }}/output-metadata.json
