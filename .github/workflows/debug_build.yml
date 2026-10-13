@@ -28,6 +28,9 @@ jobs:
         run: |
           exit_on_error() { echo "$1"; exit 1; }
 
+          echo "Preparing gradlew permissions"
+          chmod +x gradlew
+
           echo "Building APKs"
           if ! ./gradlew assembleDebug; then
             exit_on_error "Build failed."
@@ -36,7 +39,6 @@ jobs:
           APK_DIR_PATH="./app/build/outputs/apk/debug"
 
           echo "Validating and capturing APK dynamically"
-          # Melahap file apa saja yang ada di folder output dengan pola arm64-v8a.apk
           BUILT_APK=$(ls "$APK_DIR_PATH"/*_arm64-v8a.apk 2>/dev/null | head -n 1)
 
           if [ -z "$BUILT_APK" ]; then
@@ -46,7 +48,6 @@ jobs:
 
           echo "Found APK: $BUILT_APK"
           
-          # Ekstrak nama file dasar untuk kebutuhan upload artifact & checksum
           APK_BASENAME_PREFIX=$(basename "$BUILT_APK" _arm64-v8a.apk)
 
           echo "APK_DIR_PATH=$APK_DIR_PATH" >> $GITHUB_ENV
