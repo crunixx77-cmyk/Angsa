@@ -50,9 +50,9 @@ jobs:
           echo "APK_BASENAME_PREFIX=$APK_BASENAME_PREFIX" >> $GITHUB_ENV
 
           echo "Building APKs for 'APK_VERSION_TAG' build"
-          export TERMUX_APP_VERSION_NAME="${RELEASE_VERSION_NAME/v/}"
-          export TERMUX_APK_VERSION_TAG="$APK_VERSION_TAG"
-          export TERMUX_PACKAGE_VARIANT="${{ env.PACKAGE_VARIANT }}"
+          export NUJUMA_APP_VERSION_NAME="${RELEASE_VERSION_NAME/v/}"
+          export NUJUMA_APK_VERSION_TAG="$APK_VERSION_TAG"
+          export NUJUMA_PACKAGE_VARIANT="${{ env.PACKAGE_VARIANT }}"
           if ! ./gradlew assembleDebug; then
             exit_on_error "Build failed for '$APK_VERSION_TAG' build."
           fi
@@ -65,11 +65,11 @@ jobs:
             fi
           done
 
-          echo "Generating sha25sums file"
+          echo "Generating sha256sums file"
           if ! (cd "$APK_DIR_PATH"; sha256sum \
             "${APK_BASENAME_PREFIX}_arm64-v8a.apk" \
             > "${APK_BASENAME_PREFIX}_sha256sums"); then
-            exit_on_error "Generate sha25sums failed for '$APK_VERSION_TAG' release."
+            exit_on_error "Generate sha256sums failed for '$APK_VERSION_TAG' release."
           fi
 
       - name: Attach arm64-v8a APK file
