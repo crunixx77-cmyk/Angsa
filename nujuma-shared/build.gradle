@@ -27,7 +27,7 @@ android {
 
         implementation project(":terminal-view")
 
-        implementation files("../app/libs/nujuma-am-library-release.aar")
+        implementation project(":nujuma-am-library")
     }
 
     defaultConfig {
